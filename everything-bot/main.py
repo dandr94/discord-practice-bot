@@ -9,7 +9,7 @@ TOKEN = os.getenv('TOKEN')
 class Client(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=commands.when_mentioned_or('!'), intents=discord.Intents.all())
-        self.custom_cogs = ['cogs.death_roll_game']
+        self.custom_cogs = ['cogs.death_roll_game', 'cogs.youtube_music']
 
     async def setup_hook(self) -> None:
         for ext in self.custom_cogs:
