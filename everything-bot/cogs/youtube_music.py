@@ -10,30 +10,19 @@ from cogs.utils import YouTubeMusicUtils
 class Queue:
     def __init__(self):
         self.queue = deque()
-        self.playing_now = None
-        self.playing_now_embed = None
 
     def add_track(self, title: str):
-        self.queue.appendleft(title)
+        self.queue.append(title)
 
     def play_next(self):
         if not self.is_empty():
-            next_track = self.queue.pop()
-            self.playing_now = next_track
-
+            next_track = self.queue.popleft()
             return next_track
 
         return 0
 
-    def return_playing_now(self):
-        return self.playing_now
-
-    def set_playing_now(self, track):
-        self.playing_now = track
-
     def clear_queue(self):
         self.queue.clear()
-        self.playing_now = None
 
     def is_empty(self):
         return len(self.queue) == 0
@@ -44,27 +33,11 @@ class Queue:
     def get_by_id(self, id):
         return self.queue[id]
 
-    @staticmethod
-    def get_title(video):
-        return video.get('title')
-
-    @staticmethod
-    def get_duration(video):
-        return video.get('duration')
-
-    @staticmethod
-    def get_youtube_url(video):
-        return video.get('webpage_url')
-
-    @staticmethod
-    def get_thumbnail(video):
-        return video.get('thumbnail')
-
 
 class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
     """
         A class used to represent an YouTubeMusic player.
-        Users can interact with the play using the various commands of the class.
+        Users can interact with the bot using the various commands of the class.
 
         Available commands:
         -------
@@ -78,17 +51,20 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         3. !queue - Available also with !q or !que
         Shows the current songs in the Queue. If it's empty it show 'Queue is empty.'
 
-        4. !leave - Available also with !l or !leave_channel
+        4. !current - Available also with !song or !show_current_playing_song
+        Shows the info of the current song playing.
+
+        5. !leave - Available also with !l or !leave_channel
         Kicks the bot from the current voice channel.
 
-        5. !stop - Available also with !stop_video
+        6. !stop - Available also with !stop_video
         Stops the bot from playing and clears the Queue.
         The bot remains in the channel for further usage.
 
-        6. !pause - Available also with !pause_video
+        7. !pause - Available also with !pause_video
         Pauses the current song.
 
-        7. !resume - Available also with !resume_video
+        8. !resume - Available also with !resume_video
         Resumes the current paused song.
 
     """
@@ -97,6 +73,14 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         self.bot: commands.Bot = bot
         self.queue: Queue = Queue()
         self.voice_channel = None
+        self.playing_now = None
+        self.playing_now_embed = None
+
+    def return_playing_now(self):
+        return self.playing_now
+
+    def set_playing_now(self, track):
+        self.playing_now = track
 
     async def connect(self, ctx):
         """
@@ -146,8 +130,8 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         for i in range(self.queue.length()):
             field_name = f'{i + 1 if i > 0 else "Next"}.'
-            video = self.queue.get_by_id(i - 1)
-            field_value = self.queue.get_title(video)
+            video = self.queue.get_by_id(i)
+            field_value = self.get_title(video)
 
             embed.add_field(name=field_name, value=field_value, inline=False)
 
@@ -173,13 +157,12 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         """
         self.voice_channel.play(
-            discord.FFmpegPCMAudio(source=url, **self.FFMPEG_OPTIONS),
-        )
+            discord.FFmpegPCMAudio(source=url, **self.FFMPEG_OPTIONS), after=lambda e: self.skip(ctx=ctx))
 
-        duration = self.queue.get_duration(video)
-        title = self.queue.get_title(video)
-        youtube_url = self.queue.get_youtube_url(video)
-        thumbnail = self.queue.get_thumbnail(video)
+        title = self.get_title(video)
+        duration = self.get_duration(video)
+        youtube_url = self.get_youtube_url(video)
+        thumbnail = self.get_thumbnail(video)
 
         embed = self.construct_message_embed(title=self.EMBED_MESSAGE_TITLE, description=title,
                                              color=self.EMBED_MESSAGE_TITLE_COLOR) \
@@ -190,9 +173,9 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         embed_message = await ctx.send(embed=embed)
 
-        self.queue.playing_now_embed = embed_message
+        self.playing_now_embed = embed_message
 
-        self.queue.set_playing_now(title)
+        self.set_playing_now(title)
 
     def skip(self, ctx):
         """
@@ -200,17 +183,18 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         If there is a song in Queue it retrieves it and plays it. Otherwise, returns "Queue is empty".
         """
 
-        asyncio.run_coroutine_threadsafe(self.queue.playing_now_embed.edit(), self.bot.loop)
+        asyncio.run_coroutine_threadsafe(self.playing_now_embed.edit(), self.bot.loop)
         if self.voice_channel.is_playing():
             self.voice_channel.pause()
         if not self.queue.is_empty():
             next_track = self.queue.play_next()
             url = self.return_url(next_track)
+            self.playing_now = next_track
             asyncio.run_coroutine_threadsafe(self.play(ctx, url, next_track), self.bot.loop)
-            if self.queue.playing_now_embed is not None:
-                self.queue.playing_now_embed = None
+            if self.playing_now_embed is not None:
+                self.playing_now_embed = None
         else:
-            asyncio.run_coroutine_threadsafe(ctx.send(self.EMBED_QUEUE_EMPTY_TITLE, delete_after=3),
+            asyncio.run_coroutine_threadsafe(ctx.send(self.EMBED_QUEUE_EMPTY_TITLE),
                                              self.bot.loop)
 
     def stop(self, ctx):
@@ -224,7 +208,8 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         elif self.voice_channel.is_paused():
             self.voice_channel.stop()
 
-        self.queue.playing_now_embed = None
+        self.playing_now = None
+        self.playing_now_embed = None
 
     def leave(self, ctx):
         """
@@ -269,8 +254,9 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
             await self.play(ctx, url, video)
         else:
+            title = self.get_title(video)
             self.queue.add_track(video)
-            await ctx.send(f'{video.get("title")} added to queue.')
+            await ctx.send(title + self.ADD_TO_QUEUE_MESSAGE)
 
     # Commands
     @commands.command(aliases=['skip', 's'])
@@ -281,7 +267,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         """
         try:
             self.skip(ctx)
-            await ctx.send(self.SKIP_MESSAGE)
+            await ctx.send(self.SKIP_MESSAGE + self.playing_now)
         except AttributeError:
             return
 
@@ -291,11 +277,22 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         Command uses the 'construct_queue_embed' method.
         Returns an embedded message.
         """
-        now_playing = self.queue.return_playing_now()
+        now_playing = self.return_playing_now()
 
         embed = self.construct_queue_embed(now_playing)
 
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=['current', 'song'])
+    async def show_current_playing_song(self, ctx):
+        """
+        Command that shows the info of the current playing song.
+        """
+        try:
+            now_playing = self.playing_now_embed.embeds[0]
+            await ctx.send(embed=now_playing)
+        except AttributeError:
+            await ctx.send(self.CURRENT_PLAYING_SONG_ERROR_MSG)
 
     @commands.command(aliases=['leave', 'l'])
     async def leave_channel(self, ctx):
@@ -321,7 +318,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         except AttributeError:
             return
 
-    @commands.command(aliases=['pause'])  # Works
+    @commands.command(aliases=['pause'])
     async def pause_video(self, ctx):
         """
         Command that uses the 'pause' method.
