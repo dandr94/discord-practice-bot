@@ -21,11 +21,17 @@ class YouTubeMusicUtils:
     EMBED_QUEUE_TITLE_COLOR = 0xf0cd4f
     EMBED_QUEUE_EMPTY_TITLE = 'Queue is empty.'
 
+    # CURRENT_PLAYING_SONG
+    CURRENT_PLAYING_SONG_ERROR_MSG = 'There is no current playing song!'
+
+    # QUEUE
+    ADD_TO_QUEUE_MESSAGE = 'added to queue.'
+
     # EXTRACT
     EXTRACT_ERROR_MESSAGE = 'Song not found.'
 
     # SKIP
-    SKIP_MESSAGE = 'Skipped.'
+    SKIP_MESSAGE = 'Skipped >> '
 
     # LEAVE
     LEAVE_CHANNEL_MESSAGE = 'Bot has left the channel.'
@@ -39,3 +45,19 @@ class YouTubeMusicUtils:
     # RESUME
     RESUME_MESSAGE = 'Resumed.'
     RESUME_ERROR_MESSAGE = 'Not paused!'
+
+    @staticmethod
+    def get_title(video):
+        return video.get('title')
+
+    @staticmethod
+    def get_duration(video):
+        return video.get('duration')
+
+    @staticmethod
+    def get_youtube_url(video):
+        return video.get('webpage_url')
+
+    @staticmethod
+    def get_thumbnail(video):
+        return video.get('thumbnail')
