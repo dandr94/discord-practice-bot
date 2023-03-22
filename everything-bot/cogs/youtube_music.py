@@ -109,14 +109,6 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         return video
 
-    @staticmethod
-    def return_url(video):
-        """
-        Method that returns the url of the audio source.
-        """
-        url = video['url']
-        return url
-
     def construct_queue_embed(self, now_playing):
         """
         The method constructs an embed message containing a list of videos that are in the Queue to be displayed.
@@ -188,7 +180,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             self.voice_channel.pause()
         if not self.queue.is_empty():
             next_track = self.queue.play_next()
-            url = self.return_url(next_track)
+            url = self.get_video_source(next_track)
             self.playing_now = next_track
             asyncio.run_coroutine_threadsafe(self.play(ctx, url, next_track), self.bot.loop)
             if self.playing_now_embed is not None:
@@ -250,7 +242,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             return
 
         if not self.voice_channel.is_playing():
-            url = self.return_url(video)
+            url = self.get_video_source(video)
 
             await self.play(ctx, url, video)
         else:

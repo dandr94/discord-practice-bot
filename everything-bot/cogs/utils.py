@@ -61,3 +61,7 @@ class YouTubeMusicUtils:
     @staticmethod
     def get_thumbnail(video):
         return video.get('thumbnail')
+
+    @staticmethod
+    def get_video_source(video):
+        return video.get('url')
