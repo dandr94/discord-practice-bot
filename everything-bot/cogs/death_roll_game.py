@@ -43,7 +43,7 @@ class DeathRoll(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f'{ctx.author.mention}, please provide a number to roll')
         elif isinstance(error, commands.MemberNotFound):
-            msg = ctx.message.clean_content.split()[1:]
+            msg = ctx.message.clean_content.split()[1:][0]
             await ctx.send(f'{msg} is not a member!')
 
     @commands.command()
