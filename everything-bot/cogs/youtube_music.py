@@ -4,7 +4,7 @@ import discord
 import asyncio
 from discord.ext import commands
 from yt_dlp import YoutubeDL
-from cogs.utils import YouTubeMusicUtils
+from cogs.utils import YouTubeMusicUtils, construct_message_embed
 
 
 class Queue:
@@ -129,18 +129,6 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         return embed
 
-    @staticmethod
-    def construct_message_embed(title, description, color):
-        """
-        Embed message factory method that constructs an embed.
-        """
-
-        embed = discord.Embed(title=title,
-                              description=description,
-                              colour=color)
-
-        return embed
-
     async def play(self, ctx, url, video):
         """
         The method uses the "play" method of the "voice_channel" object to play audio from the provided "url".
@@ -156,8 +144,8 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         youtube_url = self.get_youtube_url(video)
         thumbnail = self.get_thumbnail(video)
 
-        embed = self.construct_message_embed(title=self.EMBED_MESSAGE_TITLE, description=title,
-                                             color=self.EMBED_MESSAGE_TITLE_COLOR) \
+        embed = construct_message_embed(title=self.EMBED_MESSAGE_TITLE, description=title,
+                                        color=self.EMBED_MESSAGE_TITLE_COLOR) \
             .add_field(name=self.EMBED_MESSAGE_DURATION_NAME, value=datetime.timedelta(seconds=duration)) \
             .add_field(name=self.EMBED_MESSAGE_REQUESTED_BY_NAME, value=ctx.author.mention) \
             .add_field(name=self.EMBED_MESSAGE_URL_NAME, value=youtube_url, inline=False) \
@@ -259,7 +247,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         """
         try:
             self.skip(ctx)
-            await ctx.send(self.SKIP_MESSAGE + self.playing_now)
+            await ctx.send(self.SKIP_MESSAGE)
         except AttributeError:
             return
 
