@@ -1,5 +1,7 @@
 import datetime
 from collections import deque
+from typing import Dict, Union, Any
+
 import discord
 import asyncio
 from discord.ext import commands
@@ -72,17 +74,17 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
         self.queue: Queue = Queue()
-        self.voice_channel = None
-        self.playing_now = None
-        self.playing_now_embed = None
+        self.voice_channel: Union[None, discord.voice_client.VoiceClient] = None
+        self.playing_now: Union[None, str] = None
+        self.playing_now_embed: Union[None, discord.message.Message] = None
 
-    def return_playing_now(self):
+    def return_playing_now(self) -> Union[None, str]:
         return self.playing_now
 
-    def set_playing_now(self, track):
+    def set_playing_now(self, track: str):
         self.playing_now = track
 
-    async def connect(self, ctx):
+    async def connect(self, ctx: commands.Context) -> None:
         """
         Connects the bot to the voice channel that the user who sent the message is currently in.
         """
@@ -95,7 +97,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         except:
             pass
 
-    def extract_video(self, arg):
+    def extract_video(self, arg: str) -> Dict[str, Any]:
         """
         Method that extracts information about a YouTube video using the provided search query or video ID.
         """
@@ -109,7 +111,26 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         return video
 
-    def construct_queue_embed(self, now_playing):
+    def construct_play_embed(self,
+                             title: str,
+                             duration: int,
+                             thumbnail: str,
+                             requested_by: str,
+                             youtube_url: str) -> discord.embeds.Embed:
+        """
+        The method constructs an embed message containing information of the requested video to be displayed.
+        """
+
+        embed = construct_message_embed(title=self.EMBED_MESSAGE_TITLE, description=title,
+                                        color=self.EMBED_MESSAGE_TITLE_COLOR) \
+            .add_field(name=self.EMBED_MESSAGE_DURATION_NAME, value=datetime.timedelta(seconds=duration)) \
+            .add_field(name=self.EMBED_MESSAGE_REQUESTED_BY_NAME, value=requested_by) \
+            .add_field(name=self.EMBED_MESSAGE_URL_NAME, value=youtube_url, inline=False) \
+            .set_thumbnail(url=thumbnail)
+
+        return embed
+
+    def construct_queue_embed(self, now_playing: str) -> discord.embeds.Embed:
         """
         The method constructs an embed message containing a list of videos that are in the Queue to be displayed.
         If it's empty returns 'Queue is empty.'
@@ -126,30 +147,22 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             field_value = self.get_title(video)
 
             embed.add_field(name=field_name, value=field_value, inline=False)
-
         return embed
 
-    async def play(self, ctx, url, video):
+    async def play(self, ctx: commands.Context, url: str, video: Dict[str, Any]) -> None:
         """
         The method uses the "play" method of the "voice_channel" object to play audio from the provided "url".
-        The method then retrieves information about the video being played.
-        Next, the method constructs an embed message to display information about the video being played.
-
         """
         self.voice_channel.play(
             discord.FFmpegPCMAudio(source=url, **self.FFMPEG_OPTIONS), after=lambda e: self.skip(ctx=ctx))
 
         title = self.get_title(video)
         duration = self.get_duration(video)
-        youtube_url = self.get_youtube_url(video)
         thumbnail = self.get_thumbnail(video)
+        requested_by = ctx.author.mention
+        youtube_url = self.get_youtube_url(video)
 
-        embed = construct_message_embed(title=self.EMBED_MESSAGE_TITLE, description=title,
-                                        color=self.EMBED_MESSAGE_TITLE_COLOR) \
-            .add_field(name=self.EMBED_MESSAGE_DURATION_NAME, value=datetime.timedelta(seconds=duration)) \
-            .add_field(name=self.EMBED_MESSAGE_REQUESTED_BY_NAME, value=ctx.author.mention) \
-            .add_field(name=self.EMBED_MESSAGE_URL_NAME, value=youtube_url, inline=False) \
-            .set_thumbnail(url=thumbnail)
+        embed = self.construct_play_embed(title, duration, thumbnail, requested_by, youtube_url)
 
         embed_message = await ctx.send(embed=embed)
 
@@ -157,13 +170,12 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
         self.set_playing_now(title)
 
-    def skip(self, ctx):
+    def skip(self, ctx: commands.Context) -> None:
         """
         Method that handles playing the next track in the queue.
         If there is a song in Queue it retrieves it and plays it. Otherwise, returns "Queue is empty".
         """
 
-        asyncio.run_coroutine_threadsafe(self.playing_now_embed.edit(), self.bot.loop)
         if self.voice_channel.is_playing():
             self.voice_channel.pause()
         if not self.queue.is_empty():
@@ -177,7 +189,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             asyncio.run_coroutine_threadsafe(ctx.send(self.EMBED_QUEUE_EMPTY_TITLE),
                                              self.bot.loop)
 
-    def stop(self, ctx):
+    def stop(self, ctx: commands.Context) -> None:
         """
         Method that stops the audio and clears the Queue.
         The bot remains in the channel for further usage.
@@ -191,21 +203,21 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         self.playing_now = None
         self.playing_now_embed = None
 
-    def leave(self, ctx):
+    def leave(self, ctx: commands.Context) -> None:
         """
         Method that pauses the bot and disconnects it from the channel.
         """
         self.pause(ctx)
         asyncio.run_coroutine_threadsafe(self.voice_channel.disconnect(), self.bot.loop)
 
-    def pause(self, ctx):
+    def pause(self, ctx: commands.Context) -> None:
         """
         Method that pauses the current playing song if song is being played.
         """
         if not self.voice_channel.is_paused():
             self.voice_channel.pause()
 
-    def resume(self, ctx):
+    def resume(self, ctx: commands.Context) -> None:
         """
         Method that resumes the current paused song. Otherwise, returns 'Not paused.'
         """
@@ -215,7 +227,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             asyncio.run_coroutine_threadsafe(ctx.send(self.RESUME_ERROR_MESSAGE), self.bot.loop)
 
     @commands.command(aliases=['play', 'p'])
-    async def play_video(self, ctx, *, arg):
+    async def play_video(self, ctx: commands.Context, *, arg: str):
         """
         Command that uses the 'play' method.
         It tries to retrieve the song otherwise, returns 'Song not found.'
@@ -240,7 +252,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
 
     # Commands
     @commands.command(aliases=['skip', 's'])
-    async def skip_video(self, ctx):
+    async def skip_video(self, ctx: commands.Context):
         """
         Command that uses the 'skip' method.
         If it is successful it returns 'Skipped'.
@@ -252,7 +264,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             return
 
     @commands.command(aliases=['queue', 'q', 'que'])
-    async def show_queue(self, ctx):
+    async def show_queue(self, ctx: commands.Context) -> None:
         """
         Command uses the 'construct_queue_embed' method.
         Returns an embedded message.
@@ -264,7 +276,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['current', 'song'])
-    async def show_current_playing_song(self, ctx):
+    async def show_current_playing_song(self, ctx: commands.Context):
         """
         Command that shows the info of the current playing song.
         """
@@ -275,7 +287,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             await ctx.send(self.CURRENT_PLAYING_SONG_ERROR_MSG)
 
     @commands.command(aliases=['leave', 'l'])
-    async def leave_channel(self, ctx):
+    async def leave_channel(self, ctx: commands.Context):
         """
         Command that uses the 'leave' method.
         If it is successful it returns a message.
@@ -287,7 +299,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             return
 
     @commands.command(aliases=['stop'])
-    async def stop_video(self, ctx):
+    async def stop_video(self, ctx: commands.Context):
         """
         Command that uses the 'stop' method.
         If it is successful it returns a message.
@@ -299,7 +311,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             return
 
     @commands.command(aliases=['pause'])
-    async def pause_video(self, ctx):
+    async def pause_video(self, ctx: commands.Context):
         """
         Command that uses the 'pause' method.
         Returns a message if it is successful.
@@ -315,7 +327,7 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             return
 
     @commands.command(aliases=['resume', 'r'])
-    async def resume_video(self, ctx):
+    async def resume_video(self, ctx: commands.Context):
         """
         Command that uses the 'resume' method.
         If it is successful it returns a message.
@@ -328,5 +340,5 @@ class YouTubeMusic(commands.Cog, YouTubeMusicUtils):
             return
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(YouTubeMusic(bot))
