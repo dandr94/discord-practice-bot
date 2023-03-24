@@ -12,7 +12,7 @@ class Help(commands.Cog, HelpUtils):
         bot.remove_command('help')
 
     @commands.group(invoke_without_command=True)
-    async def help(self, ctx):
+    async def help(self, ctx: commands.Context) -> None:
 
         embed = construct_message_embed(title=self.GLOBAL_EMBED_TITLE, description=self.GLOBAL_EMBED_DESCRIPTION,
                                         color=self.EMBED_TITLE_COLOR)
@@ -22,7 +22,7 @@ class Help(commands.Cog, HelpUtils):
         await ctx.send(embed=embed)
 
     @help.command()
-    async def deathroll(self, ctx, arg=None):
+    async def deathroll(self, ctx: commands.Context, arg: str = None) -> None:
         if arg:
             match arg:
                 case 'challenge':
@@ -78,7 +78,7 @@ class Help(commands.Cog, HelpUtils):
             await ctx.send(embed=embed)
 
     @help.command()
-    async def youtubemusic(self, ctx, arg=None):
+    async def youtubemusic(self, ctx: commands.Context, arg: str = None) -> None:
         if arg:
             if arg == 'play' or arg == 'p':
                 embed = construct_message_embed(title=self.PLAY_EMBED_TITLE,
@@ -182,5 +182,5 @@ class Help(commands.Cog, HelpUtils):
             await ctx.send(embed=embed)
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Help(bot))

@@ -39,7 +39,7 @@ class DeathRoll(commands.Cog):
                 f"the game.")
 
     @challenge.error
-    async def challenge_errors(self, ctx: commands.Context, error: commands.CommandError):
+    async def challenge_errors(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f'{ctx.author.mention}, please provide a number to roll')
         elif isinstance(error, commands.MemberNotFound):
@@ -87,12 +87,12 @@ class DeathRoll(commands.Cog):
                 self.current_player, self.other_player = self.other_player, self.current_player
 
     @roll.error
-    async def roll_error(self, ctx: commands.Context, error: commands.CommandError):
+    async def roll_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"{ctx.author.mention}, please provide a number to roll.")
         if isinstance(error, commands.BadArgument):
             await ctx.send(f"{ctx.author.mention}, please provide a number to roll.")
 
 
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(DeathRoll(bot))
