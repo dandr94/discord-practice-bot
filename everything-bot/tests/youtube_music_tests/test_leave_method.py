@@ -20,13 +20,10 @@ class TestYouTubeMusicLeave(unittest.TestCase):
 
         self.youtube_music.leave(Mock())
 
+        self.assertTrue(self.voice_channel_mock.is_paused())
+
         self.voice_channel_mock.pause.assert_called_once()
 
         self.voice_channel_mock.disconnect.assert_called_once()
 
         self.voice_channel_mock.disconnect.assert_called_with()
-
-    def test_pause(self):
-        self.youtube_music.pause(Mock())
-        self.voice_channel_mock.pause.assert_called_once()
-        self.assertTrue(self.voice_channel_mock.is_paused())
