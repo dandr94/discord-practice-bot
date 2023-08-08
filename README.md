@@ -6,7 +6,7 @@ This is a Discord bot built using the discord.py library. The bot features a Dea
 The Death Roll game allows players to take turns rolling a number that decreases until someone rolls a 1 and loses the game.
 
 ### Commands
-- `!challenge` **<u>player</u>** **<u>start_roll</u>**: Challenge a player to a new Death Roll game.</br>
+- `!challenge` **>player<** **>start_roll<**: Challenge a player to a new Death Roll game.</br>
 - `!cancel`: Cancel the current Death Roll game.</br>
 - `!roll` <roll>: Roll a number to continue the Death Roll game.
 
@@ -48,7 +48,7 @@ cd discord-practice-bot/everything-bot/
 pip install -r requirements.txt
 ```
 4. Set up your Discord bot and obtain a token. [Read this for more information](https://discord.com/developers/docs/getting-started).
-5. Create a `.env` and add the following environment variable to your .env:</br>
+5. Create a `.env` and add the following environment variable to your `.env`:</br>
 `TOKEN=your_discord_token_here`
 6. Run the bot:</br>
 ```bash
